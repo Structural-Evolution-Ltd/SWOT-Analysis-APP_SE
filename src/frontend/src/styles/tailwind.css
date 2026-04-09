@@ -1,0 +1,152 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  body {
+    @apply bg-steel-50 text-steel-900 antialiased;
+    font-family: 'IBM Plex Sans', sans-serif;
+    background-image:
+      radial-gradient(circle at 10% 0%, rgba(115, 156, 183, 0.22) 0%, transparent 38%),
+      radial-gradient(circle at 95% 95%, rgba(47, 81, 103, 0.16) 0%, transparent 42%),
+      linear-gradient(180deg, #f3f7fa 0%, #edf3f8 100%);
+    min-height: 100vh;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: 'Space Grotesk', sans-serif;
+    letter-spacing: -0.01em;
+  }
+}
+
+@layer components {
+  .panel {
+    @apply rounded-2xl border border-steel-200/80 bg-white/95 p-5 shadow-panel backdrop-blur;
+  }
+
+  .field {
+    @apply rounded-lg border border-steel-300 bg-white px-3 py-2 text-sm transition focus:border-steel-500 focus:outline-none focus:ring-2 focus:ring-steel-200;
+  }
+
+  .btn-primary {
+    @apply rounded-lg bg-steel-700 px-3 py-2 text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-steel-800;
+  }
+
+  .btn-secondary {
+    @apply rounded-lg border border-steel-300 bg-white px-3 py-2 text-sm font-semibold text-steel-800 transition hover:-translate-y-px hover:bg-steel-100;
+  }
+
+  .metric-tile {
+    @apply rounded-xl border border-steel-200 bg-white/80 p-3;
+  }
+
+  .table-frame {
+    @apply overflow-auto rounded-xl border border-steel-200;
+  }
+
+  .table-grid {
+    @apply min-w-full border-collapse text-sm;
+  }
+
+  .table-grid thead tr {
+    @apply bg-steel-100;
+  }
+
+  .table-grid th,
+  .table-grid td {
+    @apply border border-steel-200 p-2 text-left align-middle;
+  }
+
+  .table-dense th,
+  .table-dense td {
+    @apply p-1 text-xs;
+  }
+
+  .theme-blueprint {
+    @apply text-steel-100;
+    background-image:
+      linear-gradient(180deg, rgba(10, 20, 32, 0.95) 0%, rgba(18, 32, 46, 0.98) 100%),
+      repeating-linear-gradient(
+        0deg,
+        rgba(126, 180, 214, 0.06) 0px,
+        rgba(126, 180, 214, 0.06) 1px,
+        transparent 1px,
+        transparent 28px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        rgba(126, 180, 214, 0.06) 0px,
+        rgba(126, 180, 214, 0.06) 1px,
+        transparent 1px,
+        transparent 28px
+      );
+  }
+
+  .theme-blueprint header {
+    @apply border-steel-700 bg-steel-900/90;
+  }
+
+  .theme-blueprint .panel,
+  .theme-blueprint .metric-tile {
+    @apply border-steel-700 bg-steel-900/70 text-steel-100;
+  }
+
+  .theme-blueprint .field,
+  .theme-blueprint select {
+    @apply border-steel-600 bg-steel-900 text-steel-100;
+  }
+
+  .theme-blueprint .btn-secondary {
+    @apply border-steel-500 bg-steel-800 text-steel-100 hover:bg-steel-700;
+  }
+
+  .theme-blueprint .table-grid thead tr {
+    @apply bg-steel-800;
+  }
+
+  .theme-blueprint .table-grid th,
+  .theme-blueprint .table-grid td {
+    @apply border-steel-700;
+  }
+}
+
+@media print {
+  body {
+    background: #ffffff !important;
+  }
+
+  header,
+  .screen-controls {
+    display: none !important;
+  }
+
+  .print-report-header {
+    display: block !important;
+  }
+
+  .panel {
+    box-shadow: none !important;
+    border: 1px solid #9aa8b5 !important;
+    break-inside: avoid;
+  }
+
+  .table-frame {
+    overflow: visible !important;
+  }
+
+  .table-grid th,
+  .table-grid td {
+    border-color: #b8c3ce !important;
+    font-size: 11px;
+    padding: 5px;
+  }
+}
