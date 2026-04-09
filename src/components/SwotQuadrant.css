@@ -1,0 +1,278 @@
+.swot-quadrant {
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: #fff;
+  transition: box-shadow 0.2s;
+}
+
+.swot-quadrant:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+/* Colour themes per quadrant */
+.swot-quadrant--strengths {
+  --quadrant-color: #2e7d32;
+  --quadrant-bg: #e8f5e9;
+  --quadrant-header-bg: #2e7d32;
+  --quadrant-btn-bg: #43a047;
+  --quadrant-btn-hover: #2e7d32;
+}
+
+.swot-quadrant--weaknesses {
+  --quadrant-color: #c62828;
+  --quadrant-bg: #ffebee;
+  --quadrant-header-bg: #c62828;
+  --quadrant-btn-bg: #e53935;
+  --quadrant-btn-hover: #c62828;
+}
+
+.swot-quadrant--opportunities {
+  --quadrant-color: #1565c0;
+  --quadrant-bg: #e3f2fd;
+  --quadrant-header-bg: #1565c0;
+  --quadrant-btn-bg: #1e88e5;
+  --quadrant-btn-hover: #1565c0;
+}
+
+.swot-quadrant--threats {
+  --quadrant-color: #e65100;
+  --quadrant-bg: #fff3e0;
+  --quadrant-header-bg: #e65100;
+  --quadrant-btn-bg: #fb8c00;
+  --quadrant-btn-hover: #e65100;
+}
+
+/* Header */
+.swot-quadrant__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  background: var(--quadrant-header-bg);
+  color: #fff;
+}
+
+.swot-quadrant__icon {
+  font-size: 1.4rem;
+}
+
+.swot-quadrant__title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex: 1;
+}
+
+.swot-quadrant__count {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+/* Item list */
+.swot-quadrant__list {
+  list-style: none;
+  margin: 0;
+  padding: 10px 12px;
+  flex: 1;
+  background: var(--quadrant-bg);
+  min-height: 80px;
+  overflow-y: auto;
+}
+
+.swot-item {
+  margin-bottom: 6px;
+}
+
+.swot-item--empty {
+  color: #999;
+  font-style: italic;
+  font-size: 0.9rem;
+  padding: 8px 4px;
+}
+
+.swot-item__view {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.7);
+  transition: background 0.15s;
+}
+
+.swot-item__view:hover {
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.swot-item__view:hover .swot-item__actions {
+  opacity: 1;
+}
+
+.swot-item__bullet {
+  color: var(--quadrant-color);
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.swot-item__text {
+  flex: 1;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.swot-item__actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.swot-item__edit-btn,
+.swot-item__delete-btn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  line-height: 1;
+  transition: background 0.15s, color 0.15s;
+}
+
+.swot-item__edit-btn {
+  color: #555;
+}
+
+.swot-item__edit-btn:hover {
+  background: #e0e0e0;
+  color: #333;
+}
+
+.swot-item__delete-btn {
+  color: #999;
+}
+
+.swot-item__delete-btn:hover {
+  background: #ffebee;
+  color: #c62828;
+}
+
+/* Edit mode */
+.swot-item__edit {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.swot-item__edit-input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 2px solid var(--quadrant-color);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  resize: vertical;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.swot-item__edit-input:focus {
+  outline: none;
+}
+
+.swot-item__edit-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.swot-item__save-btn,
+.swot-item__cancel-btn {
+  border: none;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.swot-item__save-btn {
+  background: var(--quadrant-btn-bg);
+  color: #fff;
+}
+
+.swot-item__save-btn:hover {
+  background: var(--quadrant-btn-hover);
+}
+
+.swot-item__cancel-btn {
+  background: #e0e0e0;
+  color: #555;
+}
+
+.swot-item__cancel-btn:hover {
+  background: #bdbdbd;
+}
+
+/* Add input area */
+.swot-quadrant__add {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  background: #fafafa;
+}
+
+.swot-quadrant__add-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1.5px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  resize: none;
+  font-family: inherit;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.swot-quadrant__add-input:focus {
+  outline: none;
+  border-color: var(--quadrant-color);
+}
+
+.swot-quadrant__add-btn {
+  align-self: flex-end;
+  padding: 7px 16px;
+  background: var(--quadrant-btn-bg);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.swot-quadrant__add-btn:hover:not(:disabled) {
+  background: var(--quadrant-btn-hover);
+}
+
+.swot-quadrant__add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

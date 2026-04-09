@@ -1,0 +1,223 @@
+/* =================== RESET & BASE =================== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #f0f2f5;
+  color: #212121;
+  min-height: 100vh;
+}
+
+/* =================== APP LAYOUT =================== */
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* =================== HEADER =================== */
+.app__header {
+  background: linear-gradient(135deg, #1a237e 0%, #283593 100%);
+  color: #fff;
+  padding: 20px 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.app__header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.app__title-wrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+.app__title {
+  margin: 0 0 4px;
+  font-size: clamp(1.4rem, 4vw, 2rem);
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 6px;
+  padding: 2px 6px;
+  transition: background 0.15s;
+}
+
+.app__title:hover,
+.app__title:focus {
+  background: rgba(255, 255, 255, 0.15);
+  outline: none;
+}
+
+.app__title-edit-hint {
+  font-size: 0.7em;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.app__title:hover .app__title-edit-hint,
+.app__title:focus .app__title-edit-hint {
+  opacity: 1;
+}
+
+.app__title-input {
+  background: rgba(255, 255, 255, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  border-radius: 6px;
+  color: #fff;
+  font-size: clamp(1.2rem, 4vw, 1.8rem);
+  font-weight: 800;
+  padding: 4px 10px;
+  font-family: inherit;
+  width: 100%;
+  max-width: 500px;
+}
+
+.app__title-input:focus {
+  outline: none;
+  border-color: #fff;
+}
+
+.app__title-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.app__subtitle {
+  margin: 0;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+/* =================== HEADER ACTIONS =================== */
+.app__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.app__action-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+
+.app__action-btn:hover {
+  transform: translateY(-1px);
+}
+
+.app__action-btn:active {
+  transform: translateY(0);
+}
+
+.app__action-btn--secondary {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.app__action-btn--secondary:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.app__action-btn--danger {
+  background: rgba(229, 57, 53, 0.8);
+  color: #fff;
+}
+
+.app__action-btn--danger:hover {
+  background: rgba(229, 57, 53, 1);
+}
+
+/* =================== ERROR BANNER =================== */
+.app__error {
+  max-width: 1200px;
+  margin: 10px auto 0;
+  background: #ffcdd2;
+  color: #b71c1c;
+  padding: 10px 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.9rem;
+}
+
+.app__error button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #b71c1c;
+  font-size: 1rem;
+  padding: 0 4px;
+}
+
+/* =================== MATRIX GRID =================== */
+.app__matrix {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 16px;
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  flex: 1;
+}
+
+/* =================== FOOTER =================== */
+.app__footer {
+  text-align: center;
+  padding: 14px 20px;
+  font-size: 0.8rem;
+  color: #777;
+  border-top: 1px solid #ddd;
+  background: #fff;
+}
+
+.app__footer p {
+  margin: 0;
+}
+
+/* =================== RESPONSIVE =================== */
+@media (max-width: 640px) {
+  .app__matrix {
+    grid-template-columns: 1fr;
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .app__header-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .app__actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 900px) {
+  .app__matrix {
+    padding: 14px;
+    gap: 14px;
+  }
+}
