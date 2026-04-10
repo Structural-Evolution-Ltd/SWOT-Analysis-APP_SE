@@ -1,0 +1,12 @@
+{
+  "name": "swot-analysis-app-se",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "src/frontend"
+  ],
+  "scripts": {
+    "quality": "npm --workspace src/frontend run build",
+    "build:frontend": "npm --workspace src/frontend run build"
+  }
+}
