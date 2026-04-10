@@ -3,7 +3,7 @@
 Weighted SWOT and MCDA decision analysis tool for FRP bridge and related product options.
 
 ## Stack
-- Backend: FastAPI + SQLite
+- Backend: FastAPI + PostgreSQL
 - Frontend: React + Vite + Plotly
 - Reporting: Markdown source with Quarto/Pandoc path to PDF and DOCX
 
