@@ -1,7 +1,9 @@
 import axios from 'axios'
 
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+
 const api = axios.create({
-  baseURL: 'http://127.0.0.1:8000/api',
+  baseURL: apiBaseUrl,
 })
 
 export async function fetchTransportDefaults() {

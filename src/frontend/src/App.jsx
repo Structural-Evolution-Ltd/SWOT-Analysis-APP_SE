@@ -37,6 +37,12 @@ const STEP_LINKS = [
   { id: 'run', label: '7 Run' },
 ]
 
+const SWOT_OPTIONS = ['S', 'W', 'O', 'T']
+const SCORING_MODE = {
+  SIMPLE: 'simple',
+  ADVANCED: 'advanced',
+}
+
 const ADDITIONAL_CRITERIA = [
   // Structural
   { id: 200001, title: 'Fatigue performance', group: 'Structural', category: 'S', default_weight: 1.0 },
@@ -127,7 +133,7 @@ const ADDITIONAL_CRITERIA = [
 function createInitialOption(name, templates) {
   const scores = templates.map((t) => ({
     criterion_id: t.id,
-    category: t.category,
+    category: t.default_category || t.category || 'S',
     factor_weight: t.default_weight,
     score_best: 7,
     score_base: 6,
@@ -153,7 +159,7 @@ function addCriterionToOptions(currentOptions, criterion) {
         ...option.scores,
         {
           criterion_id: criterion.id,
-          category: criterion.category,
+          category: criterion.default_category || criterion.category || 'S',
           factor_weight: criterion.default_weight,
           score_best: 7,
           score_base: 6,
@@ -166,6 +172,39 @@ function addCriterionToOptions(currentOptions, criterion) {
 
 function mergeSuggestedIntoOptions(currentOptions, suggestedItems) {
   return suggestedItems.reduce((acc, item) => addCriterionToOptions(acc, item), currentOptions)
+}
+
+function downloadMarkdownReport(payload) {
+  const lines = [
+    `# ${payload.project_name}`,
+    '',
+    `Client: ${payload.client_name}`,
+    '',
+    '## Executive Summary',
+    payload.executive_summary,
+    '',
+    '## Assumptions',
+    ...payload.assumptions.map((item) => `- ${item}`),
+    '',
+    '## Ranking',
+    ...payload.ranking.map(
+      (row, idx) =>
+        `${idx + 1}. ${row.option_name} | Risk-adjusted: ${row.risk_adjusted_score.toFixed(2)} | Expected: ${row.expected_score.toFixed(2)} | Gates: ${row.passed_gates ? 'Pass' : 'Fail'}`,
+    ),
+    '',
+    `Winner: ${payload.winner ?? 'None passed gates'}`,
+    `Loser: ${payload.loser ?? 'N/A'}`,
+  ]
+
+  const blob = new Blob([lines.join('\n')], { type: 'text/markdown;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = 'swot-analysis-report.md'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
 }
 
 export default function App() {
@@ -183,20 +222,15 @@ export default function App() {
   const [newCriterionCategory, setNewCriterionCategory] = useState('S')
   const [newCriterionWeight, setNewCriterionWeight] = useState(1)
   const [projectStatusMessage, setProjectStatusMessage] = useState('')
+  const [scoringMode, setScoringMode] = useState(SCORING_MODE.ADVANCED)
   const [additionalCriteriaToggles, setAdditionalCriteriaToggles] = useState(
     () => Object.fromEntries(ADDITIONAL_CRITERIA.map((item) => [item.id, false])),
   )
 
-  const sortedTemplates = useMemo(() => {
-    const rank = { S: 0, W: 1, O: 2, T: 3 }
-    return [...templates].sort((a, b) => {
-      const categoryDiff = rank[a.category] - rank[b.category]
-      if (categoryDiff !== 0) {
-        return categoryDiff
-      }
-      return a.title.localeCompare(b.title)
-    })
-  }, [templates])
+  const sortedTemplates = useMemo(
+    () => [...templates].sort((a, b) => a.title.localeCompare(b.title)),
+    [templates],
+  )
 
   const swotHeadings = {
     S: 'Strengths',
@@ -222,11 +256,16 @@ export default function App() {
         fetchTransportDefaults(),
       ])
 
-      setTemplates(templateRows)
+      const normalizedTemplates = templateRows.map((row) => ({
+        ...row,
+        default_category: row.default_category || row.category || 'S',
+      }))
+
+      setTemplates(normalizedTemplates)
       setConstraints(transportRows)
       setOptions([
-        createInitialOption('FRP Walkway - Continuous', templateRows),
-        createInitialOption('FRP Walkway - Split', templateRows),
+        createInitialOption('FRP Walkway - Continuous', normalizedTemplates),
+        createInitialOption('FRP Walkway - Split', normalizedTemplates),
       ])
     }
 
@@ -248,8 +287,9 @@ export default function App() {
   const templateCountsByCategory = useMemo(() => {
     const base = { S: 0, W: 0, O: 0, T: 0 }
     templates.forEach((item) => {
-      if (base[item.category] !== undefined) {
-        base[item.category] += 1
+      const defaultCategory = item.default_category || item.category
+      if (base[defaultCategory] !== undefined) {
+        base[defaultCategory] += 1
       }
     })
     return base
@@ -257,7 +297,14 @@ export default function App() {
 
   async function onSuggestCriteria() {
     const data = await suggestCriteriaFromBrief(briefText)
-    setSuggested({ S: data.S ?? [], W: data.W ?? [], O: data.O ?? [], T: data.T ?? [] })
+    const normalized = {}
+    for (const key of SWOT_OPTIONS) {
+      normalized[key] = (data[key] ?? []).map((item) => ({
+        ...item,
+        default_category: item.default_category || item.category || key,
+      }))
+    }
+    setSuggested(normalized)
   }
 
   function onApplySuggestedCriteria() {
@@ -371,7 +418,7 @@ export default function App() {
     const criterion = {
       id: maxId + 1,
       title: trimmedTitle,
-      category: newCriterionCategory,
+      default_category: newCriterionCategory,
       default_weight: Number(newCriterionWeight) || 1,
       prompt_keywords: '',
     }
@@ -382,6 +429,25 @@ export default function App() {
     setNewCriterionTitle('')
     setNewCriterionCategory('S')
     setNewCriterionWeight(1)
+  }
+
+  function onScoreCategoryChange(optionIndex, criterionId, nextCategory) {
+    setOptions((current) =>
+      current.map((option, idx) => {
+        if (idx !== optionIndex) {
+          return option
+        }
+
+        return {
+          ...option,
+          scores: option.scores.map((score) =>
+            score.criterion_id === criterionId
+              ? { ...score, category: nextCategory }
+              : score,
+          ),
+        }
+      }),
+    )
   }
 
   function onToggleAdditionalCriterion(criterionId, isEnabled) {
@@ -471,10 +537,22 @@ export default function App() {
   }
 
   async function onRunAnalysis() {
+    const optionsForAnalysis =
+      scoringMode === SCORING_MODE.SIMPLE
+        ? options.map((option) => ({
+            ...option,
+            scores: option.scores.map((score) => ({
+              ...score,
+              score_best: score.score_base,
+              score_worst: score.score_base,
+            })),
+          }))
+        : options
+
     const payload = {
       category_weights: categoryWeights,
       thresholds: DEFAULT_THRESHOLDS,
-      options,
+      options: optionsForAnalysis,
       risk_confidence: riskConfidence,
     }
     const analysis = await runAnalysis(payload)
@@ -486,7 +564,7 @@ export default function App() {
       return
     }
 
-    const report = await generateReport({
+    const payload = {
       project_name: 'Project SWOT Study',
       client_name: 'Client',
       executive_summary: 'Risk-adjusted weighted SWOT and MCDA ranking for current shortlisted options.',
@@ -497,9 +575,22 @@ export default function App() {
       ranking: result.ranking,
       winner: result.winner,
       loser: result.loser,
-    })
+    }
 
-    setReportInfo(report)
+    try {
+      const report = await generateReport(payload)
+      setReportInfo(report)
+    } catch (error) {
+      // Deployed frontend may not have direct access to backend report services.
+      downloadMarkdownReport(payload)
+      setReportInfo({
+        render_status: 'Downloaded local markdown fallback (backend report service unavailable).',
+        markdown_path: 'downloaded in browser',
+        latex_path: 'not generated',
+        pdf_path: null,
+        docx_path: null,
+      })
+    }
   }
 
   function onSaveProject() {
@@ -513,6 +604,7 @@ export default function App() {
         riskConfidence,
         categoryWeights,
         ahpPreferences,
+        scoringMode,
         result,
         reportInfo,
         additionalCriteriaToggles,
@@ -554,6 +646,7 @@ export default function App() {
       setRiskConfidence(Number(loaded.riskConfidence ?? 0.65))
       setCategoryWeights(loaded.categoryWeights ?? INITIAL_CATEGORY_WEIGHTS)
       setAhpPreferences(loaded.ahpPreferences ?? { sw: 1, so: 1, st: 1, wo: 1, wt: 1, ot: 1 })
+      setScoringMode(loaded.scoringMode ?? SCORING_MODE.ADVANCED)
       setResult(loaded.result ?? { ranking: [], winner: null, loser: null })
       setReportInfo(loaded.reportInfo ?? null)
       setAdditionalCriteriaToggles(mergedToggles)
@@ -637,18 +730,18 @@ export default function App() {
           <p>Edit criterion weights in one place. Changes apply to all options.</p>
         </div>
         <div className="workflow-strip mini">
-          <span>S: {templateCountsByCategory.S}</span>
-          <span>W: {templateCountsByCategory.W}</span>
-          <span>O: {templateCountsByCategory.O}</span>
-          <span>T: {templateCountsByCategory.T}</span>
+          <span>Default S: {templateCountsByCategory.S}</span>
+          <span>Default W: {templateCountsByCategory.W}</span>
+          <span>Default O: {templateCountsByCategory.O}</span>
+          <span>Default T: {templateCountsByCategory.T}</span>
         </div>
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Category</th>
                 <th>Criterion</th>
+                <th>Default SWOT</th>
                 <th>Factor Weight</th>
               </tr>
             </thead>
@@ -656,8 +749,8 @@ export default function App() {
               {sortedTemplates.map((item) => (
                 <tr key={item.id}>
                   <td>{item.id}</td>
-                  <td>{item.category}</td>
                   <td>{item.title}</td>
+                  <td>{item.default_category || item.category || 'S'}</td>
                   <td>
                     <input
                       type="number"
@@ -806,11 +899,27 @@ export default function App() {
       <section className="panel" id="scoring">
         <div className="panel-head">
           <h2>6. Options and Scores</h2>
-          <p>Score all options in one matrix with Best/Base/Worst scenarios.</p>
+          <p>
+            {scoringMode === SCORING_MODE.SIMPLE
+              ? 'Score each criterion with a single base score per option.'
+              : 'Score all options in one matrix with Best/Base/Worst scenarios.'}
+          </p>
         </div>
         <div className="row-actions">
           <button onClick={onAddOption}>Add Option</button>
           <button className="button-secondary" onClick={onAddCombination}>Add Combination (first two)</button>
+          <button
+            className={scoringMode === SCORING_MODE.SIMPLE ? 'button-secondary' : ''}
+            onClick={() => setScoringMode(SCORING_MODE.SIMPLE)}
+          >
+            Simple Mode
+          </button>
+          <button
+            className={scoringMode === SCORING_MODE.ADVANCED ? 'button-secondary' : ''}
+            onClick={() => setScoringMode(SCORING_MODE.ADVANCED)}
+          >
+            Advanced Mode
+          </button>
         </div>
 
         {options.map((option, optionIdx) => (
@@ -828,37 +937,60 @@ export default function App() {
                     {sortedTemplates.map((criterion) => (
                       <th key={`${option.option_name}-h-${criterion.id}`}>
                         <div>{criterion.title}</div>
-                        <small>{criterion.category}</small>
+                        <small>Default {criterion.default_category || criterion.category || 'S'}</small>
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {[['Best', 'score_best'], ['Base', 'score_base'], ['Worst', 'score_worst']].map(
-                    ([label, field]) => (
-                      <tr key={`${option.option_name}-${label}`}>
-                        <td>{label}</td>
-                        {sortedTemplates.map((criterion) => {
-                          const score = option.scores.find((item) => item.criterion_id === criterion.id)
-                          if (!score) {
-                            return <td key={`${option.option_name}-${label}-${criterion.id}`}>-</td>
-                          }
+                  {(scoringMode === SCORING_MODE.SIMPLE
+                    ? [['Score', 'score_base']]
+                    : [['Best', 'score_best'], ['Base', 'score_base'], ['Worst', 'score_worst']]
+                  ).map(([label, field]) => (
+                    <tr key={`${option.option_name}-${label}`}>
+                      <td>{label}</td>
+                      {sortedTemplates.map((criterion) => {
+                        const score = option.scores.find((item) => item.criterion_id === criterion.id)
+                        if (!score) {
+                          return <td key={`${option.option_name}-${label}-${criterion.id}`}>-</td>
+                        }
 
-                          return (
-                            <td key={`${option.option_name}-${label}-${criterion.id}`}>
-                              <input
-                                type="number"
-                                min="1"
-                                max="10"
-                                value={score[field]}
-                                onChange={(e) => onScoreChange(optionIdx, criterion.id, field, e.target.value)}
-                              />
-                            </td>
-                          )
-                        })}
-                      </tr>
-                    ),
-                  )}
+                        return (
+                          <td key={`${option.option_name}-${label}-${criterion.id}`}>
+                            <input
+                              type="number"
+                              min="1"
+                              max="10"
+                              value={score[field]}
+                              onChange={(e) => onScoreChange(optionIdx, criterion.id, field, e.target.value)}
+                            />
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  ))}
+                  <tr>
+                      <td>SWOT</td>
+                      {sortedTemplates.map((criterion) => {
+                        const score = option.scores.find((item) => item.criterion_id === criterion.id)
+                        if (!score) {
+                          return <td key={`${option.option_name}-swot-empty-${criterion.id}`}>-</td>
+                        }
+
+                        return (
+                          <td key={`${option.option_name}-swot-${criterion.id}`}>
+                            <select
+                              value={score.category}
+                              onChange={(e) => onScoreCategoryChange(optionIdx, criterion.id, e.target.value)}
+                            >
+                              {SWOT_OPTIONS.map((swot) => (
+                                <option key={swot} value={swot}>{swot}</option>
+                              ))}
+                            </select>
+                          </td>
+                        )
+                      })}
+                    </tr>
                 </tbody>
               </table>
             </div>
