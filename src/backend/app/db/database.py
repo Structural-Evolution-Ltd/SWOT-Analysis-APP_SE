@@ -1,5 +1,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.pool import NullPool, StaticPool
 
 from app.core.config import settings
 
@@ -14,10 +15,16 @@ def _normalized_database_url(url: str) -> str:
 _database_url = _normalized_database_url(settings.database_url)
 _is_sqlite = _database_url.startswith("sqlite")
 
-engine = create_engine(
-    _database_url,
-    connect_args={"check_same_thread": False} if _is_sqlite else {},
-)
+# Serverless environments (Vercel) require NullPool — no persistent connections.
+# SQLite (local dev) uses StaticPool so in-memory DBs work across requests.
+if _is_sqlite:
+    engine = create_engine(
+        _database_url,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+else:
+    engine = create_engine(_database_url, poolclass=NullPool)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
