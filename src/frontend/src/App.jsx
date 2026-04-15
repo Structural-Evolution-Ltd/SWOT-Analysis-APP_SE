@@ -573,6 +573,7 @@ export default function App() {
 
   async function onGenerateReport() {
     if (!result.ranking.length) {
+      setApiError('Run Analysis first before generating a report.')
       return
     }
 
@@ -589,20 +590,14 @@ export default function App() {
       loser: result.loser,
     }
 
-    try {
-      const report = await generateReport(payload)
-      setReportInfo(report)
-    } catch (error) {
-      // Deployed frontend may not have direct access to backend report services.
-      downloadMarkdownReport(payload)
-      setReportInfo({
-        render_status: 'Downloaded local markdown fallback (backend report service unavailable).',
-        markdown_path: 'downloaded in browser',
-        latex_path: 'not generated',
-        pdf_path: null,
-        docx_path: null,
-      })
-    }
+    downloadMarkdownReport(payload)
+    setReportInfo({
+      render_status: 'Downloaded local markdown fallback (backend report service unavailable).',
+      markdown_path: 'downloaded in browser',
+      latex_path: 'not generated',
+      pdf_path: null,
+      docx_path: null,
+    })
   }
 
   function onSaveProject() {
