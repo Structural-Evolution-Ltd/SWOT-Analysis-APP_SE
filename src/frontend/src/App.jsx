@@ -222,6 +222,7 @@ export default function App() {
   const [newCriterionCategory, setNewCriterionCategory] = useState('S')
   const [newCriterionWeight, setNewCriterionWeight] = useState(1)
   const [projectStatusMessage, setProjectStatusMessage] = useState('')
+  const [apiError, setApiError] = useState('')
   const [scoringMode, setScoringMode] = useState(SCORING_MODE.ADVANCED)
   const [additionalCriteriaToggles, setAdditionalCriteriaToggles] = useState(
     () => Object.fromEntries(ADDITIONAL_CRITERIA.map((item) => [item.id, false])),
@@ -296,15 +297,20 @@ export default function App() {
   }, [templates])
 
   async function onSuggestCriteria() {
-    const data = await suggestCriteriaFromBrief(briefText)
-    const normalized = {}
-    for (const key of SWOT_OPTIONS) {
-      normalized[key] = (data[key] ?? []).map((item) => ({
-        ...item,
-        default_category: item.default_category || item.category || key,
-      }))
+    setApiError('')
+    try {
+      const data = await suggestCriteriaFromBrief(briefText)
+      const normalized = {}
+      for (const key of SWOT_OPTIONS) {
+        normalized[key] = (data[key] ?? []).map((item) => ({
+          ...item,
+          default_category: item.default_category || item.category || key,
+        }))
+      }
+      setSuggested(normalized)
+    } catch {
+      setApiError('Criteria suggestion unavailable — backend not connected. Add criteria manually below.')
     }
-    setSuggested(normalized)
   }
 
   function onApplySuggestedCriteria() {
@@ -532,11 +538,17 @@ export default function App() {
   }
 
   async function onComputeAhp() {
-    const weights = await computeAhpWeights(ahpPreferences)
-    setCategoryWeights(weights)
+    setApiError('')
+    try {
+      const weights = await computeAhpWeights(ahpPreferences)
+      setCategoryWeights(weights)
+    } catch {
+      setApiError('AHP weights unavailable — backend not connected. Adjust weights manually.')
+    }
   }
 
   async function onRunAnalysis() {
+    setApiError('')
     const optionsForAnalysis =
       scoringMode === SCORING_MODE.SIMPLE
         ? options.map((option) => ({
@@ -681,6 +693,13 @@ export default function App() {
           {projectStatusMessage && <span className="status-text">{projectStatusMessage}</span>}
         </div>
       </header>
+
+      {apiError && (
+        <div style={{ background: '#fff3cd', border: '1px solid #ffc107', borderRadius: 6, padding: '10px 16px', margin: '12px 0', color: '#856404' }}>
+          ⚠️ {apiError}
+          <button onClick={() => setApiError('')} style={{ marginLeft: 12, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
+        </div>
+      )}
 
       <section className="panel" id="brief">
         <div className="panel-head">
