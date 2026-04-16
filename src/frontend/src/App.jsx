@@ -271,6 +271,43 @@ export default function App() {
     }
 
     bootstrap()
+
+    // PWA File Handling API — handle files opened via Windows Explorer
+    if ('launchQueue' in window) {
+      window.launchQueue.setConsumer(async (launchParams) => {
+        if (!launchParams.files?.length) return
+        try {
+          const file = await launchParams.files[0].getFile()
+          const raw = await file.text()
+          const loaded = JSON.parse(raw)
+          const loadedTemplates = Array.isArray(loaded.templates) ? loaded.templates : []
+          const loadedOptions = Array.isArray(loaded.options) ? loaded.options : []
+          const loadedConstraints = Array.isArray(loaded.constraints) ? loaded.constraints : []
+          const mergedToggles = Object.fromEntries(
+            ADDITIONAL_CRITERIA.map((item) => {
+              const isInTemplates = loadedTemplates.some((t) => t.id === item.id)
+              const isEnabled = Boolean(loaded.additionalCriteriaToggles?.[item.id] ?? isInTemplates)
+              return [item.id, isEnabled]
+            }),
+          )
+          setBriefText(loaded.briefText ?? '')
+          setTemplates(loadedTemplates)
+          setSuggested(loaded.suggested ?? { S: [], W: [], O: [], T: [] })
+          setConstraints(loadedConstraints)
+          setOptions(loadedOptions)
+          setRiskConfidence(Number(loaded.riskConfidence ?? 0.65))
+          setCategoryWeights(loaded.categoryWeights ?? INITIAL_CATEGORY_WEIGHTS)
+          setAhpPreferences(loaded.ahpPreferences ?? { sw: 1, so: 1, st: 1, wo: 1, wt: 1, ot: 1 })
+          setScoringMode(loaded.scoringMode ?? SCORING_MODE.ADVANCED)
+          setResult(loaded.result ?? { ranking: [], winner: null, loser: null })
+          setReportInfo(loaded.reportInfo ?? null)
+          setAdditionalCriteriaToggles(mergedToggles)
+          setProjectStatusMessage(`Opened: ${file.name}`)
+        } catch {
+          setProjectStatusMessage('Failed to open file.')
+        }
+      })
+    }
   }, [])
 
   const summaryByCategory = useMemo(() => {
@@ -620,8 +657,8 @@ export default function App() {
 
       if (typeof window.showSaveFilePicker === 'function') {
         const handle = await window.showSaveFilePicker({
-          suggestedName: 'swot-project.json',
-          types: [{ description: 'SWOT Project', accept: { 'application/json': ['.json'] } }],
+          suggestedName: 'swot-project.swot',
+          types: [{ description: 'SWOT Project', accept: { 'application/x-swot-project': ['.swot'] } }],
         })
         const writable = await handle.createWritable()
         await writable.write(json)
@@ -633,7 +670,7 @@ export default function App() {
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
-        a.download = 'swot-project.json'
+        a.download = 'swot-project.swot'
         a.click()
         URL.revokeObjectURL(url)
         setProjectStatusMessage('Project downloaded as swot-project.json.')
@@ -650,7 +687,7 @@ export default function App() {
       let raw
       if (typeof window.showOpenFilePicker === 'function') {
         const [handle] = await window.showOpenFilePicker({
-          types: [{ description: 'SWOT Project', accept: { 'application/json': ['.json'] } }],
+          types: [{ description: 'SWOT Project', accept: { 'application/x-swot-project': ['.swot'], 'application/json': ['.json'] } }],
           multiple: false,
         })
         const file = await handle.getFile()
