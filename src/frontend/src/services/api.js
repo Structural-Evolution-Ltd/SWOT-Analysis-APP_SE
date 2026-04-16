@@ -45,8 +45,12 @@ export async function fetchTransportDefaults() {
 }
 
 export async function fetchCriteriaTemplates() {
-  const { data } = await api.get('/criteria/templates')
-  return data
+  try {
+    const { data } = await api.get('/criteria/templates')
+    return data
+  } catch {
+    return []
+  }
 }
 
 export async function suggestCriteriaFromBrief(briefText) {

@@ -253,25 +253,35 @@ export function ProjectProvider({ children }) {
   // Bootstrap: fetch templates + transport defaults on mount
   useEffect(() => {
     async function bootstrap() {
-      const [templateRows, transportRows] = await Promise.all([
+      const [templateResult, transportResult] = await Promise.allSettled([
         fetchCriteriaTemplates(),
         fetchTransportDefaults(),
       ])
+
+      const templateRows =
+        templateResult.status === 'fulfilled' ? templateResult.value : []
+      const transportRows =
+        transportResult.status === 'fulfilled' ? transportResult.value : []
+
       const normalizedTemplates = templateRows.map((row) => ({
         ...row,
         default_category: row.default_category || row.category || 'S',
       }))
-      dispatch({
-        type: 'set',
-        patch: {
-          templates: normalizedTemplates,
-          constraints: transportRows,
-          options: [
-            createInitialOption('FRP Walkway - Continuous', normalizedTemplates),
-            createInitialOption('FRP Walkway - Split', normalizedTemplates),
-          ],
-        },
-      })
+
+      const patch = {}
+      if (normalizedTemplates.length) {
+        patch.templates = normalizedTemplates
+        patch.options = [
+          createInitialOption('FRP Walkway - Continuous', normalizedTemplates),
+          createInitialOption('FRP Walkway - Split', normalizedTemplates),
+        ]
+      }
+      if (transportRows.length) {
+        patch.constraints = transportRows
+      }
+      if (Object.keys(patch).length) {
+        dispatch({ type: 'set', patch })
+      }
     }
     bootstrap()
 
