@@ -3,7 +3,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.db.database import Base, engine, get_db
+from app.db.database import get_db
 from app.models.entities import CriteriaTemplate
 from app.schemas.analysis import AnalysisRequest, AnalysisResponse, OptionResult
 from app.schemas.mcda import AhpPreferences, AhpWeightsResponse
@@ -12,15 +12,9 @@ from app.services.ahp import compute_ahp_weights
 from app.services.brief_parser import suggest_criteria_from_brief
 from app.services.reporting import markdown_to_latex_placeholder, render_report_markdown, try_render_with_quarto
 from app.services.scoring import WeightedCriterion, evaluate_option, rank_options
-from app.services.seed_data import seed_criteria_templates
 from app.services.transport_rules import get_default_constraints
 
 router = APIRouter()
-
-
-@router.on_event("startup")
-def init_db() -> None:
-    Base.metadata.create_all(bind=engine)
 
 
 @router.get("/health")
@@ -35,7 +29,6 @@ def transport_defaults() -> list[dict]:
 
 @router.get("/criteria/templates")
 def criteria_templates(db: Session = Depends(get_db)) -> list[dict]:
-    seed_criteria_templates(db)
     rows = db.query(CriteriaTemplate).all()
     return [
         {
@@ -51,7 +44,6 @@ def criteria_templates(db: Session = Depends(get_db)) -> list[dict]:
 
 @router.post("/criteria/suggest")
 def suggest_from_brief(payload: dict, db: Session = Depends(get_db)) -> dict:
-    seed_criteria_templates(db)
     templates = db.query(CriteriaTemplate).all()
     template_rows = [
         {
