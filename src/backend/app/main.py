@@ -2,7 +2,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import router
-from app.api.routes_mvp import router as mvp_router
 from app.core.config import settings
 
 app = FastAPI(title=settings.app_name)
@@ -16,4 +15,3 @@ app.add_middleware(
 )
 
 app.include_router(router, prefix="/api")
-app.include_router(mvp_router, prefix="/api")
