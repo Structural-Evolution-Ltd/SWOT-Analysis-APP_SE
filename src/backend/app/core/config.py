@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     app_name: str = "Weighted SWOT Decision Tool"
-    database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/swot_analysis"
+    database_url: str = "sqlite:///./swot_analysis.db"
     # Accepts JSON array OR comma-separated string from env, e.g.:
     #   CORS_ORIGINS='["https://my-app.vercel.app"]'
     #   CORS_ORIGINS=https://my-app.vercel.app,http://localhost:5173

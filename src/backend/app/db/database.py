@@ -16,7 +16,7 @@ _database_url = _normalized_database_url(settings.database_url)
 _is_sqlite = _database_url.startswith("sqlite")
 
 # Serverless environments (Vercel) require NullPool — no persistent connections.
-# SQLite (local dev) uses StaticPool so in-memory DBs work across requests.
+# SQLite (local dev / fallback) uses StaticPool so requests share the same connection.
 if _is_sqlite:
     engine = create_engine(
         _database_url,
@@ -24,6 +24,7 @@ if _is_sqlite:
         poolclass=StaticPool,
     )
 else:
+    # Import psycopg lazily so missing binary doesn't crash the module on SQLite installs.
     engine = create_engine(_database_url, poolclass=NullPool)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
