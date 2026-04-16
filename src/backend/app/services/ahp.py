@@ -1,7 +1,5 @@
-import numpy as np
-
-
 def compute_ahp_weights(sw: float, so: float, st: float, wo: float, wt: float, ot: float) -> dict[str, float]:
+    import numpy as np  # lazy import: keeps Lambda cold-start free of numpy binary load
     matrix = np.array(
         [
             [1.0, sw, so, st],
