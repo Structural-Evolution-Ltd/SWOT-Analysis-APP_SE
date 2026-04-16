@@ -600,7 +600,7 @@ export default function App() {
     })
   }
 
-  function onSaveProject() {
+  async function onSaveProject() {
     try {
       const projectState = {
         briefText,
@@ -616,20 +616,57 @@ export default function App() {
         reportInfo,
         additionalCriteriaToggles,
       }
+      const json = JSON.stringify(projectState, null, 2)
 
-      localStorage.setItem(PROJECT_STORAGE_KEY, JSON.stringify(projectState))
-      setProjectStatusMessage('Project saved locally.')
+      if (typeof window.showSaveFilePicker === 'function') {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: 'swot-project.json',
+          types: [{ description: 'SWOT Project', accept: { 'application/json': ['.json'] } }],
+        })
+        const writable = await handle.createWritable()
+        await writable.write(json)
+        await writable.close()
+        setProjectStatusMessage('Project saved.')
+      } else {
+        // Fallback: trigger browser download
+        const blob = new Blob([json], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'swot-project.json'
+        a.click()
+        URL.revokeObjectURL(url)
+        setProjectStatusMessage('Project downloaded as swot-project.json.')
+      }
     } catch (error) {
-      setProjectStatusMessage('Save failed. Browser storage may be unavailable.')
+      if (error.name !== 'AbortError') {
+        setProjectStatusMessage('Save failed: ' + error.message)
+      }
     }
   }
 
-  function onLoadProject() {
+  async function onLoadProject() {
     try {
-      const raw = localStorage.getItem(PROJECT_STORAGE_KEY)
-      if (!raw) {
-        setProjectStatusMessage('No saved project found.')
-        return
+      let raw
+      if (typeof window.showOpenFilePicker === 'function') {
+        const [handle] = await window.showOpenFilePicker({
+          types: [{ description: 'SWOT Project', accept: { 'application/json': ['.json'] } }],
+          multiple: false,
+        })
+        const file = await handle.getFile()
+        raw = await file.text()
+      } else {
+        // Fallback: hidden file input
+        raw = await new Promise((resolve, reject) => {
+          const input = document.createElement('input')
+          input.type = 'file'
+          input.accept = '.json,application/json'
+          input.onchange = async () => {
+            if (!input.files?.length) return reject(new Error('No file selected'))
+            resolve(await input.files[0].text())
+          }
+          input.click()
+        })
       }
 
       const loaded = JSON.parse(raw)
@@ -660,7 +697,9 @@ export default function App() {
 
       setProjectStatusMessage('Project loaded.')
     } catch (error) {
-      setProjectStatusMessage('Load failed. Saved file may be invalid.')
+      if (error.name !== 'AbortError') {
+        setProjectStatusMessage('Load failed: ' + error.message)
+      }
     }
   }
 
@@ -684,7 +723,7 @@ export default function App() {
         </div>
         <div className="row-actions">
           <button onClick={onSaveProject}>Save Project</button>
-          <button className="button-secondary" onClick={onLoadProject}>Load Project</button>
+          <button className="button-secondary" onClick={onLoadProject}>Open Project</button>
           {projectStatusMessage && <span className="status-text">{projectStatusMessage}</span>}
         </div>
       </header>
