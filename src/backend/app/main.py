@@ -11,12 +11,17 @@ from app.services.seed_data import seed_criteria_templates
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Base.metadata.create_all(bind=engine)
-    db = SessionLocal()
     try:
-        seed_criteria_templates(db)
-    finally:
-        db.close()
+        Base.metadata.create_all(bind=engine)
+        db = SessionLocal()
+        try:
+            seed_criteria_templates(db)
+        finally:
+            db.close()
+    except Exception:
+        # DB not reachable (e.g. DATABASE_URL not configured in this environment).
+        # App still starts; routes that require a DB will return their own errors.
+        pass
     yield
 
 
