@@ -10,7 +10,7 @@ from app.schemas.mcda import AhpPreferences, AhpWeightsResponse
 from app.schemas.reporting import ReportRequest, ReportResponse
 from app.services.ahp import compute_ahp_weights
 from app.services.brief_parser import suggest_criteria_from_brief
-from app.services.reporting import markdown_to_latex_placeholder, render_report_markdown, try_render_with_quarto
+from app.services.reporting import markdown_to_latex_placeholder, render_report_docx, render_report_markdown, try_render_with_quarto
 from app.services.scoring import WeightedCriterion, evaluate_option, rank_options
 from app.services.transport_rules import get_default_constraints
 
@@ -109,6 +109,7 @@ def run_analysis(request: AnalysisRequest) -> AnalysisResponse:
                 risk_adjusted_score=e.risk_adjusted_score,
                 passed_gates=e.passed_gates,
                 gate_failures=e.gate_failures,
+                category_scores=e.category_scores,
             )
             for e in ranked
         ],
@@ -119,18 +120,33 @@ def run_analysis(request: AnalysisRequest) -> AnalysisResponse:
 
 @router.post("/report/generate", response_model=ReportResponse)
 def generate_report(payload: ReportRequest) -> ReportResponse:
-    markdown_path = render_report_markdown(payload, output_dir=Path("build/reports"))
+    import base64
+    import tempfile
+    output_dir = Path(tempfile.gettempdir()) / "swot_reports"
+    markdown_path = render_report_markdown(payload, output_dir=output_dir)
     latex_path = markdown_to_latex_placeholder(markdown_path)
     rendered = try_render_with_quarto(
         markdown_path,
         dotx_template=Path("Resources/SEPXXXX-T-SE_REPORT_TEMPLATE_000-R04.dotx"),
     )
+    markdown_content = markdown_path.read_text(encoding="utf-8")
+    docx_bytes = render_report_docx(payload)
+    docx_b64 = base64.b64encode(docx_bytes).decode("ascii")
+
+    # Determine final render status
+    if rendered["status"] == "rendered":
+        status = "rendered"
+    else:
+        status = "python-docx"
 
     return ReportResponse(
+        project_name=payload.project_name,
+        markdown_content=markdown_content,
+        docx_content=docx_b64,
         markdown_path=str(markdown_path),
         latex_path=str(latex_path),
-        dotx_note="Phase 1 DOTX output is placeholder-mapped for template alignment.",
+        dotx_note="DOCX generated via python-docx. Use Quarto locally for DOTX-styled output.",
         pdf_path=rendered["pdf_path"],
         docx_path=rendered["docx_path"],
-        render_status=rendered["status"],
+        render_status=status,
     )

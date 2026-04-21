@@ -1,11 +1,13 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, NavLink, Route, Routes } from 'react-router-dom'
 
 import StepNav from './components/StepNav'
 import { ProjectProvider, useProject } from './context/ProjectContext'
 import BriefPage from './pages/BriefPage'
 import ConstraintsPage from './pages/ConstraintsPage'
 import CriteriaPage from './pages/CriteriaPage'
+import GatesPage from './pages/GatesPage'
 import LibraryPage from './pages/LibraryPage'
+import RiskModelPage from './pages/RiskModelPage'
 import RunPage from './pages/RunPage'
 import ScoringPage from './pages/ScoringPage'
 import WeightsPage from './pages/WeightsPage'
@@ -30,6 +32,10 @@ function AppHeader() {
         <button className="button-secondary" onClick={loadProject}>
           Open Project
         </button>
+        <NavLink to="/risk-model" className={({ isActive }) => isActive ? '' : 'button-secondary'}
+          style={{ textDecoration: 'none', padding: '6px 14px', borderRadius: 4, fontSize: 13 }}>
+          Risk Model
+        </NavLink>
         {state.projectStatusMessage && (
           <span className="status-text">{state.projectStatusMessage}</span>
         )}
@@ -78,7 +84,9 @@ export default function App() {
             <Route path="/constraints" element={<ConstraintsPage />} />
             <Route path="/weights" element={<WeightsPage />} />
             <Route path="/scoring" element={<ScoringPage />} />
+            <Route path="/gates" element={<GatesPage />} />
             <Route path="/run" element={<RunPage />} />
+            <Route path="/risk-model" element={<RiskModelPage />} />
           </Routes>
         </main>
       </div>

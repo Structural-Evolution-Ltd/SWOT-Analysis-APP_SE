@@ -25,7 +25,8 @@ export const STEP_ROUTES = [
   { path: '/constraints', label: '4 Constraints' },
   { path: '/weights', label: '5 Weights' },
   { path: '/scoring', label: '6 Scoring' },
-  { path: '/run', label: '7 Run' },
+  { path: '/gates', label: '7 Gates' },
+  { path: '/run', label: '8 Run' },
 ]
 
 export const ADDITIONAL_CRITERIA = [

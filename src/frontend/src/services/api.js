@@ -54,8 +54,29 @@ export async function fetchCriteriaTemplates() {
 }
 
 export async function suggestCriteriaFromBrief(briefText) {
-  const { data } = await api.post('/criteria/suggest', { brief_text: briefText })
-  return data.suggestions
+  try {
+    const { data } = await api.post('/criteria/suggest', { brief_text: briefText })
+    return data.suggestions
+  } catch {
+    // Offline fallback: basic keyword matching against common SWOT categories
+    const lower = briefText.toLowerCase()
+    const fallback = []
+    if (/wide|abnormal|permit|escort/.test(lower))
+      fallback.push({ id: -1, title: 'Abnormal load permitting and escort complexity', category: 'T', default_weight: 1.2 })
+    if (/split|modular|transport|haulage/.test(lower))
+      fallback.push({ id: -2, title: 'Modular split strategy transport opportunity', category: 'O', default_weight: 1.0 })
+    if (/install|closure|programme|possession/.test(lower))
+      fallback.push({ id: -3, title: 'Installation window and possession efficiency', category: 'S', default_weight: 1.1 })
+    if (/cost|budget|price/.test(lower))
+      fallback.push({ id: -4, title: 'Cost and budget risk', category: 'W', default_weight: 1.0 })
+    if (/time|schedule|delay/.test(lower))
+      fallback.push({ id: -5, title: 'Programme and schedule risk', category: 'W', default_weight: 1.0 })
+    const grouped = { S: [], W: [], O: [], T: [] }
+    for (const c of fallback) {
+      if (grouped[c.category]) grouped[c.category].push(c)
+    }
+    return fallback.length ? grouped : {}
+  }
 }
 
 export async function computeAhpWeights(preferences) {

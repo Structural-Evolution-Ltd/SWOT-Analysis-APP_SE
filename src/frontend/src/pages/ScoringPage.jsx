@@ -1,27 +1,19 @@
 import { useProject } from '../context/ProjectContext'
-import { SCORING_MODE, SWOT_OPTIONS } from '../constants'
+import { SWOT_OPTIONS } from '../constants'
 
 export default function ScoringPage() {
   const { state, dispatch, sortedTemplates } = useProject()
 
-  const rows =
-    state.scoringMode === SCORING_MODE.SIMPLE
-      ? [['Score', 'score_base']]
-      : [
-          ['Best', 'score_best'],
-          ['Base', 'score_base'],
-          ['Worst', 'score_worst'],
-        ]
+  const rows = [
+    ['Best', 'score_best'],
+    ['Worst', 'score_worst'],
+  ]
 
   return (
     <section className="panel page-panel">
       <div className="panel-head">
         <h2>6. Options and Scores</h2>
-        <p>
-          {state.scoringMode === SCORING_MODE.SIMPLE
-            ? 'Score each criterion with a single base score per option.'
-            : 'Score all options in one matrix with Best / Base / Worst scenarios.'}
-        </p>
+        <p>Score each criterion with a Best and Worst scenario per option.</p>
       </div>
 
       <div className="row-actions">
@@ -31,22 +23,6 @@ export default function ScoringPage() {
           onClick={() => dispatch({ type: 'add_combination' })}
         >
           Add Combination (first two)
-        </button>
-        <button
-          className={state.scoringMode === SCORING_MODE.SIMPLE ? '' : 'button-secondary'}
-          onClick={() =>
-            dispatch({ type: 'set', patch: { scoringMode: SCORING_MODE.SIMPLE } })
-          }
-        >
-          Simple Mode
-        </button>
-        <button
-          className={state.scoringMode === SCORING_MODE.ADVANCED ? '' : 'button-secondary'}
-          onClick={() =>
-            dispatch({ type: 'set', patch: { scoringMode: SCORING_MODE.ADVANCED } })
-          }
-        >
-          Advanced Mode
         </button>
       </div>
 

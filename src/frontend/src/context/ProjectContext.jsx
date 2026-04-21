@@ -10,6 +10,7 @@ import {
 } from '../services/api'
 import {
   ADDITIONAL_CRITERIA,
+  DEFAULT_THRESHOLDS,
   INITIAL_CATEGORY_WEIGHTS,
   SCORING_MODE,
   SWOT_OPTIONS,
@@ -29,6 +30,7 @@ const initialState = {
   options: [],
   riskConfidence: 0.65,
   categoryWeights: INITIAL_CATEGORY_WEIGHTS,
+  thresholds: { ...DEFAULT_THRESHOLDS },
   ahpPreferences: { sw: 1, so: 1, st: 1, wo: 1, wt: 1, ot: 1 },
   result: { ranking: [], winner: null, loser: null },
   reportInfo: null,
@@ -116,11 +118,13 @@ function reducer(state, action) {
       const name = `${a.option_name} + ${b.option_name}`
       const scores = a.scores.map((score, idx) => {
         const bScore = b.scores[idx]
+        const avgBest = Number(((score.score_best + bScore.score_best) / 2).toFixed(2))
+        const avgWorst = Number(((score.score_worst + bScore.score_worst) / 2).toFixed(2))
         return {
           ...score,
-          score_best: Number(((score.score_best + bScore.score_best) / 2).toFixed(2)),
-          score_base: Number(((score.score_base + bScore.score_base) / 2).toFixed(2)),
-          score_worst: Number(((score.score_worst + bScore.score_worst) / 2).toFixed(2)),
+          score_best: avgBest,
+          score_worst: avgWorst,
+          score_base: Number(((avgBest + avgWorst) / 2).toFixed(2)),
         }
       })
       return { ...state, options: [...state.options, { option_name: name, scores }] }
@@ -234,6 +238,25 @@ function reducer(state, action) {
         })),
       }
     }
+    case 'suggest_and_apply': {
+      const { suggestions } = action
+      const flatSuggested = SWOT_OPTIONS.flatMap((cat) => suggestions[cat] ?? [])
+      const existingIds = new Set(state.templates.map((item) => item.id))
+      const additions = flatSuggested.filter((item) => !existingIds.has(item.id))
+      const msg =
+        flatSuggested.length === 0
+          ? 'No criteria matched the scope text.'
+          : additions.length > 0
+          ? `${flatSuggested.length} criteria matched — ${additions.length} new added.`
+          : `${flatSuggested.length} criteria matched from scope (all already in list).`
+      return {
+        ...state,
+        suggested: suggestions,
+        templates: [...state.templates, ...additions],
+        options: mergeSuggestedIntoOptions(state.options, flatSuggested),
+        projectStatusMessage: msg,
+      }
+    }
     default:
       return state
   }
@@ -322,6 +345,7 @@ export function ProjectProvider({ children }) {
         options: loadedOptions,
         riskConfidence: Number(loaded.riskConfidence ?? 0.65),
         categoryWeights: loaded.categoryWeights ?? INITIAL_CATEGORY_WEIGHTS,
+        thresholds: loaded.thresholds ?? { ...DEFAULT_THRESHOLDS },
         ahpPreferences: loaded.ahpPreferences ?? { sw: 1, so: 1, st: 1, wo: 1, wt: 1, ot: 1 },
         scoringMode: loaded.scoringMode ?? SCORING_MODE.ADVANCED,
         result: loaded.result ?? { ranking: [], winner: null, loser: null },
@@ -345,7 +369,8 @@ export function ProjectProvider({ children }) {
         }))
       }
       dispatch({ type: 'set', patch: { suggested: normalized } })
-    } catch {
+    } catch (err) {
+      console.error('[suggestCriteria] failed:', err)
       dispatch({
         type: 'set',
         patch: {
@@ -373,21 +398,17 @@ export function ProjectProvider({ children }) {
 
   async function runAnalysis() {
     dispatch({ type: 'set', patch: { apiError: '' } })
-    const optionsForAnalysis =
-      state.scoringMode === SCORING_MODE.SIMPLE
-        ? state.options.map((option) => ({
-            ...option,
-            scores: option.scores.map((score) => ({
-              ...score,
-              score_best: score.score_base,
-              score_worst: score.score_base,
-            })),
-          }))
-        : state.options
+    const optionsForAnalysis = state.options.map((option) => ({
+      ...option,
+      scores: option.scores.map((score) => ({
+        ...score,
+        score_base: (score.score_best + score.score_worst) / 2,
+      })),
+    }))
 
     const payload = {
       category_weights: state.categoryWeights,
-      thresholds: { S: 6, W: 6, O: 6, T: 6 },
+      thresholds: state.thresholds,
       options: optionsForAnalysis,
       risk_confidence: state.riskConfidence,
     }
@@ -403,13 +424,21 @@ export function ProjectProvider({ children }) {
     const payload = {
       project_name: 'Project SWOT Study',
       client_name: 'Client',
+      project_scope: state.briefText || null,
       executive_summary:
         'Risk-adjusted weighted SWOT and MCDA ranking for current shortlisted options.',
       assumptions: [
         'Scores are based on current concept-stage data.',
         'UK transport constraints are editable and project-specific.',
       ],
-      ranking: state.result.ranking,
+      ranking: state.result.ranking.map((r) => ({
+        option_name: r.option_name,
+        risk_adjusted_score: r.risk_adjusted_score,
+        expected_score: r.expected_score,
+        passed_gates: r.passed_gates,
+        gate_failures: r.gate_failures ?? [],
+        category_scores: r.category_scores ?? {},
+      })),
       winner: state.result.winner,
       loser: state.result.loser,
     }
@@ -422,7 +451,9 @@ export function ProjectProvider({ children }) {
         type: 'set',
         patch: {
           reportInfo: {
+            project_name: payload.project_name,
             render_status: 'Downloaded local markdown fallback (backend report service unavailable).',
+            markdown_content: null,
             markdown_path: 'downloaded in browser',
             latex_path: 'not generated',
             pdf_path: null,
@@ -443,6 +474,7 @@ export function ProjectProvider({ children }) {
         options: state.options,
         riskConfidence: state.riskConfidence,
         categoryWeights: state.categoryWeights,
+        thresholds: state.thresholds,
         ahpPreferences: state.ahpPreferences,
         scoringMode: state.scoringMode,
         result: state.result,

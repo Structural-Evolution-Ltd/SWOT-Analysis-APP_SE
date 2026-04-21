@@ -6,10 +6,19 @@ from app.core.config import settings
 
 
 def _normalized_database_url(url: str) -> str:
-    # Many hosted providers expose postgres:// while SQLAlchemy expects postgresql+driver://.
+    # Strip any accidentally embedded whitespace/newlines
+    url = url.strip()
+    # Normalise postgres:// → postgresql+psycopg2://
     if url.startswith("postgres://"):
-        return url.replace("postgres://", "postgresql+psycopg://", 1)
-    return url
+        url = url.replace("postgres://", "postgresql+psycopg2://", 1)
+    elif url.startswith("postgresql://") and "+psycopg" not in url:
+        url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
+    # Remove channel_binding — not supported by psycopg2
+    from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+    parsed = urlparse(url)
+    params = {k: v for k, v in parse_qs(parsed.query, keep_blank_values=True).items() if k != "channel_binding"}
+    clean_query = urlencode({k: v[0] for k, v in params.items()})
+    return urlunparse(parsed._replace(query=clean_query))
 
 
 _database_url = _normalized_database_url(settings.database_url)

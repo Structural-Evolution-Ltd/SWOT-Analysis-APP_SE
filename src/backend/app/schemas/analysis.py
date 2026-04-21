@@ -28,6 +28,7 @@ class OptionResult(BaseModel):
     risk_adjusted_score: float
     passed_gates: bool
     gate_failures: list[str]
+    category_scores: dict[str, float] = {}
 
 
 class AnalysisResponse(BaseModel):
